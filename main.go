@@ -1,21 +1,41 @@
-package config
+package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
-	"github.com/arandomsprinkle/gator/internal/config"
+	"github.com/bootdotdev/gator/internal/config"
 )
+
+type state struct {
+	cfg *config.Config
+}
 
 func main() {
 	cfg, err := config.Read()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error reading config: %v", err)
 	}
-	err = cfg.SetUser("Arandomsprinkle")
+
+	programState := &state{
+		cfg: &cfg,
+	}
+
+	cmds := commands{
+		registeredCommands: make(map[string]func(*state, command) error),
+	}
+	cmds.register("login", handlerLogin)
+
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: cli <command> [args...]")
+		return
+	}
+
+	cmdName := os.Args[1]
+	cmdArgs := os.Args[2:]
+
+	err = cmds.run(programState, command{Name: cmdName, Args: cmdArgs})
 	if err != nil {
 		log.Fatal(err)
 	}
-	newcfg, err := config.Read()
-	fmt.Println(newcfg)
 }
